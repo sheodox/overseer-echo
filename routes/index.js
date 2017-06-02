@@ -3,9 +3,13 @@ var router = require('express').Router(),
     path = require('path'),
     Busboy = require('busboy'),
     isPathInside = require('is-path-inside'),
+    config = require('../config'),
+    socket = require('socket.io-client').connect(config.overseer + '/echo-server'),
     storageDir = './storage';
 
-router.get('/list', function(req, res) {
+socket.on('connect', sendList);
+function sendList() {
+    console.log('listing');
     //get list of available games
     fs.readdir(storageDir, function(err, files) {
         if (err) {
@@ -14,19 +18,39 @@ router.get('/list', function(req, res) {
 
         statAll(files)
             .then(gamesInfo => {
-                res.send(JSON.stringify(gamesInfo));
+                socket.emit('refresh', gamesInfo);
             })
             .catch(err => console.log(err));
     });
+}
+socket.on('delete', function(game) {
+    var gamepath = path.join(process.cwd(), storageDir, game + '.zip');
+    if (isPathInside(gamepath, process.cwd())) {
+        console.log(`deleting ${gamepath}`);
+        fs.unlink(gamepath, err => {
+            if (err) {
+                console.log(err);
+                socket.emit('error', err);
+            }
+            else {
+                socket.emit('delete-game', game)
+            }
+        });
+    }
+    else {
+        socket.emit('error', 'invalid game path');
+    }
 });
 
 router.post('/upload', function(req, res) {
     console.log('got a request, eh');
     //forward games on to the backup server
-    var busboy = Busboy({headers: req.headers});
+    let busboy = Busboy({headers: req.headers}),
+        gameName;
 
     busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
         console.log(`uploading ${filename}`);
+        gameName = filename;
         var stream = new fs.createWriteStream(path.join(storageDir, filename));
         file.pipe(stream)
             .on('error', err => {
@@ -40,6 +64,11 @@ router.post('/upload', function(req, res) {
 
     busboy.on('finish', function() {
         console.log('done');
+        statGame(gameName)()
+            .then(gameData => {
+                socket.emit('new-game', gameData);
+                console.log(gameName, gameData);
+            })
     });
 
     req.pipe(busboy);
@@ -47,27 +76,10 @@ router.post('/upload', function(req, res) {
 
 router.get('/download/:game', function(req, res) {
     console.log(req.params.game);
-    fs.createReadStream(path.join(storageDir, req.params.game + '.zip')).pipe(res);
+    fs.createReadStream(path.join(storageDir, req.params.game)).pipe(res);
 });
 
-router.get('/delete/:game', function(req, res) {
-    var gamepath = path.join(process.cwd(), storageDir, req.params.game + '.zip');
-    if (isPathInside(gamepath, process.cwd())) {
-        console.log(`deleting ${gamepath}`);
-        fs.unlink(gamepath, err => {
-            if (err) {
-                console.log(err);
-                res.send(err);
-            }
-            else {
-                res.send(true);
-            }
-        });
-    }
-    else {
-        res.send('invalid path');
-    }
-});
+
 
 function statAll(files) {
     var p = Promise.resolve(),
@@ -95,7 +107,7 @@ function statGame(game) {
                 }
                 else {
                     resolve({
-                        game: game.replace('.zip', ''),
+                        name: game.replace('.zip', ''),
                         size: stats.size,
                         modified: stats.mtime
                     })
