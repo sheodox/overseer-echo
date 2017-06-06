@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "forever start app.js",
+    "start": "export NODE_ENV=production && forever start app.js",
     "stop": "forever stop app.js"
   },
   "dependencies": {
