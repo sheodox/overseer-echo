@@ -46,12 +46,12 @@ router.post('/upload', function(req, res) {
     console.log('got a request, eh');
     //forward games on to the backup server
     let busboy = Busboy({headers: req.headers}),
-        gameName;
+        gameName, details;
 
     busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
         console.log(`uploading ${filename}`);
         gameName = filename;
-        var stream = new fs.createWriteStream(path.join(storageDir, filename));
+        const stream = new fs.createWriteStream(path.join(storageDir, filename));
         file.pipe(stream)
             .on('error', err => {
                 console.log(err);
@@ -62,11 +62,19 @@ router.post('/upload', function(req, res) {
         });
     });
 
+    busboy.on('field', function(fieldname, val) {
+        if (fieldname === 'details') {
+            details = val;
+        }
+    });
+
     busboy.on('finish', function() {
         console.log('done');
         statGame(gameName)()
             .then(gameData => {
-                socket.emit('new-game', gameData);
+                socket.emit('new-game', Object.assign(gameData, {
+                    details: details
+                }));
                 console.log(gameName, gameData);
             })
     });
