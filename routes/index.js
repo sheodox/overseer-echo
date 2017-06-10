@@ -55,6 +55,13 @@ router.post('/upload', function(req, res) {
     busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
         console.log(`uploading ${filename}`);
         gameName = filename;
+        socket.emit('new-game', {
+            name: gameName.replace('.zip', ''),
+            inProgress: true,
+            size: 0,
+            details: '',
+            date: new Date().toISOString()
+        });
         const stream = new fs.createWriteStream(path.join(storageDir, filename));
         file.pipe(stream)
             .on('error', err => {
@@ -77,7 +84,8 @@ router.post('/upload', function(req, res) {
         statGame(gameName)()
             .then(gameData => {
                 socket.emit('new-game', Object.assign(gameData, {
-                    details: details
+                    details: details,
+                    inProgress: false
                 }));
                 console.log(gameName, gameData);
             })
