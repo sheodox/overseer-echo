@@ -84,6 +84,7 @@ router.post('/upload', function(req, res) {
 
 router.get('/download/:game', function(req, res) {
     console.log(req.params.game);
+    socket.emit('downloaded', req.params.game);
     fs.createReadStream(path.join(storageDir, req.params.game)).pipe(res);
 });
 
