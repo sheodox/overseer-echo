@@ -1,4 +1,5 @@
 var router = require('express').Router(),
+    exec = require('child_process').exec,
     fs = require('fs'),
     path = require('path'),
     Busboy = require('busboy'),
@@ -16,9 +17,12 @@ function sendList() {
             files = [];
         }
 
-        statAll(files)
-            .then(gamesInfo => {
-                socket.emit('refresh', gamesInfo);
+        Promise.all([getUsedDisc(), statAll(files)])
+            .then(([diskUsage, gamesList]) => {
+                socket.emit('refresh', {
+                    games: gamesList,
+                    diskUsage
+                });
             })
             .catch(err => console.log(err));
     });
@@ -88,7 +92,34 @@ router.get('/download/:game', function(req, res) {
     fs.createReadStream(path.join(storageDir, req.params.game)).pipe(res);
 });
 
+function getUsedDisc() {
+    function getMeasurements(str) {
+        const measurements = str.match(/(\d+)/g);
+        return {
+            total: measurements[0],
+            used: measurements[1],
+            free: measurements[2]
+        }
+    }
 
+    return new Promise((resolve, reject) => {
+        exec('df -B1', (err, stdout, stderr) => {
+            if (err) {
+                console.log(stderr);
+                reject(err);
+            }
+            else {
+                const driveInfo = stdout.split('\n').find(line => {
+                    return line.indexOf(config.fsDevice) === 0;
+                }).substr(config.fsDevice.length);
+
+                console.log(driveInfo);
+                console.log('measurements:');
+                resolve(getMeasurements(driveInfo));
+            }
+        });
+    });
+}
 
 function statAll(files) {
     var p = Promise.resolve(),
