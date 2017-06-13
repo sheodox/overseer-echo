@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "export NODE_ENV=production && forever start app.js",
-    "stop": "forever stop app.js"
+    "stop": "forever stop app.js",
+    "deploy": "npm stop && git pull && npm start"
   },
   "dependencies": {
     "body-parser": "~1.15.1",
