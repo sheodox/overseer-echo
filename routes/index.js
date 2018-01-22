@@ -41,7 +41,7 @@ socket.on('delete', function(game) {
                     .then(diskUsage => {
                         socket.emit('delete-game', {
                             diskUsage,
-                            name: game
+                            fileName: game
                         })
                     });
             }
@@ -56,6 +56,7 @@ router.post('/upload', function(req, res) {
     console.log('got a request, eh');
     //forward games on to the backup server
     let busboy = Busboy({headers: req.headers}),
+        fields = {},
         gameName, details;
 
     busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
@@ -66,7 +67,7 @@ router.post('/upload', function(req, res) {
                 socket.emit('new-game', {
                     diskUsage,
                     game: {
-                        name: gameName.replace('.zip', ''),
+                        fileName: gameName.replace('.zip', ''),
                         inProgress: true,
                         size: 0,
                         details: '',
@@ -86,9 +87,7 @@ router.post('/upload', function(req, res) {
     });
 
     busboy.on('field', function(fieldname, val) {
-        if (fieldname === 'details') {
-            details = val;
-        }
+        fields[fieldname] = val;
     });
 
     busboy.on('finish', function() {
@@ -98,9 +97,8 @@ router.post('/upload', function(req, res) {
                 socket.emit('new-game', {
                     diskUsage,
                     game: Object.assign(gameData, {
-                        details: details,
                         inProgress: false
-                    })
+                    }, fields)
                 });
                 console.log(gameName, gameData);
             })
@@ -170,7 +168,7 @@ function statGame(game) {
                 }
                 else {
                     resolve({
-                        name: game.replace('.zip', ''),
+                        fileName: game.replace('.zip', ''),
                         size: stats.size,
                         modified: stats.mtime
                     })
