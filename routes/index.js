@@ -41,7 +41,7 @@ socket.on('delete', function(game) {
                     .then(diskUsage => {
                         socket.emit('delete-game', {
                             diskUsage,
-                            fileName: game
+                            file: game
                         })
                     });
             }
@@ -53,28 +53,18 @@ socket.on('delete', function(game) {
 });
 
 router.post('/upload', function(req, res) {
-    console.log('got a request, eh');
     //forward games on to the backup server
     let busboy = Busboy({headers: req.headers}),
-        fields = {},
-        gameName, details;
+        fields = {
+            in_progress: true,
+            size: 0,
+            modified: new Date().toISOString()
+        },
+        gameName;
 
     busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
         console.log(`uploading ${filename}`);
         gameName = filename;
-        getUsedDisk()
-            .then((diskUsage) => {
-                socket.emit('new-game', {
-                    diskUsage,
-                    game: {
-                        fileName: gameName.replace('.zip', ''),
-                        inProgress: true,
-                        size: 0,
-                        details: '',
-                        date: new Date().toISOString()
-                    }
-                });
-            });
         const stream = new fs.createWriteStream(path.join(storageDir, filename));
         file.pipe(stream)
             .on('error', err => {
@@ -82,26 +72,22 @@ router.post('/upload', function(req, res) {
             });
 
         file.on('end', function() {
-            res.send(true);
+            Promise.all([getUsedDisk(), statGame(gameName)()])
+                .then(([diskUsage, gameData]) => {
+                    socket.emit('new-game', {
+                        diskUsage,
+                        game: Object.assign(fields, gameData, {
+                            in_progress: false
+                        })
+                    });
+                    console.log(gameName, gameData);
+                });
+            res.json({done: true});
         });
-    });
-
-    busboy.on('field', function(fieldname, val) {
-        fields[fieldname] = val;
     });
 
     busboy.on('finish', function() {
         console.log('done');
-        Promise.all([getUsedDisk(), statGame(gameName)()])
-            .then(([diskUsage, gameData]) => {
-                socket.emit('new-game', {
-                    diskUsage,
-                    game: Object.assign(gameData, {
-                        inProgress: false
-                    }, fields)
-                });
-                console.log(gameName, gameData);
-            })
     });
 
     req.pipe(busboy);
@@ -168,7 +154,7 @@ function statGame(game) {
                 }
                 else {
                     resolve({
-                        fileName: game.replace('.zip', ''),
+                        file: game.replace('.zip', ''),
                         size: stats.size,
                         modified: stats.mtime
                     })
