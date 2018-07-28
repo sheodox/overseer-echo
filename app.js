@@ -4,12 +4,6 @@ var express = require('express'),
     config = require('./config'),
     app = express();
 
-app.use((req, res, next) => {
-    console.log(config.overseer);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    next();
-});
-
 app.use(logger('dev'));
 
 app.use('/', routes);
