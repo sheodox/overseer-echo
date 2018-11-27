@@ -6,7 +6,7 @@ var router = require('express').Router(),
     isPathInside = require('is-path-inside'),
     config = require('../config'),
     socket = require('socket.io-client').connect(config.overseer + '/echo-server'),
-    storageDir = './storage';
+    storageDir = config.storagePath || './storage';
 
 socket.on('connect', sendList);
 function sendList() {
@@ -28,8 +28,8 @@ function sendList() {
     });
 }
 socket.on('delete', function(game) {
-    var gamepath = path.join(process.cwd(), storageDir, game + '.zip');
-    if (isPathInside(gamepath, process.cwd())) {
+    var gamepath = path.join(storageDir, game + '.zip');
+    if (isPathInside(gamepath, storageDir)) {
         console.log(`deleting ${gamepath}`);
         fs.unlink(gamepath, err => {
             if (err) {
