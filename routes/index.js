@@ -101,24 +101,23 @@ router.get('/download/:game', function(req, res) {
 
 function getUsedDisk() {
     function getMeasurements(str) {
-        const measurements = str.match(/(\d+)/g);
-        return {
-            total: measurements[0],
-            used: measurements[1],
-            free: measurements[2]
-        }
+        const [total, used, free] = str.match(/\s+(\d+)\s+(\d+)\s+(\d+)/g);
+        return {total, used, free};
     }
 
     return new Promise((resolve, reject) => {
-        exec('df -B1', (err, stdout, stderr) => {
+        //get disk usage for the device the echo storage is on
+        exec(`df -B1 ${config.storagePath}`, (err, stdout, stderr) => {
             if (err) {
                 console.log(stderr);
                 reject(err);
             }
             else {
-                const driveInfo = stdout.split('\n').find(line => {
-                    return line.indexOf(config.fsDevice) === 0;
-                }).substr(config.fsDevice.length);
+                /* output will look something like this, get the last line:
+                Filesystem      1K-blocks       Used  Available Use% Mounted on
+                /dev/sda1      2883216560 1613121452 1123565624  59% /mnt/wdred
+                 */
+                const driveInfo = stdout.trim().split('\n')[1];
 
                 console.log(driveInfo);
                 console.log('measurements:');
