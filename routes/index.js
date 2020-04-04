@@ -10,7 +10,6 @@ var router = require('express').Router(),
 
 socket.on('connect', sendList);
 function sendList() {
-    console.log('listing');
     //get list of available games
     fs.readdir(storageDir, function(err, files) {
         if (err) {
@@ -101,7 +100,7 @@ router.get('/download/:game', function(req, res) {
 
 function getUsedDisk() {
     function getMeasurements(str) {
-        const [total, used, free] = str.match(/\s+(\d+)\s+(\d+)\s+(\d+)/g);
+        const [_, total, used, free] = str.match(/\s+(\d+)\s+(\d+)\s+(\d+)/);
         return {total, used, free};
     }
 
@@ -119,8 +118,6 @@ function getUsedDisk() {
                  */
                 const driveInfo = stdout.trim().split('\n')[1];
 
-                console.log(driveInfo);
-                console.log('measurements:');
                 resolve(getMeasurements(driveInfo));
             }
         });
@@ -135,7 +132,6 @@ function statAll(files) {
         p = p
             .then(statGame(files[i]))
             .then(stats => {
-                console.log(stats);
                 games.push(stats);
             });
     }
