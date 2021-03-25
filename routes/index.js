@@ -42,14 +42,15 @@ socket.on('expect-upload', (id, ack) => {
 });
 
 socket.on('delete', (id, done) => {
-    const itemPath = path.join(storageDir, id + '.zip');
-
     //if for whatever reason we don't actually have this ID stored just say we've done it
     if (!storedItemIds.has(id)) {
         done();
+        return;
     }
 
     if (uuid.validate(id)) {
+        const itemPath = path.join(storageDir, id + '.zip');
+
         console.log(`deleting ${id}`);
         fs.unlink(itemPath, err => {
             if (err) {
