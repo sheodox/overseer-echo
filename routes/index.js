@@ -10,6 +10,7 @@ const router = require('express').Router(),
     exec = require('child_process').exec,
     fs = require('fs'),
     path = require('path'),
+    timeout = require('connect-timeout'),
     Busboy = require('busboy'),
     socket = require('socket.io-client')(`${process.env.OVERSEER_HOST}/echo-server`, {
         auth: {
@@ -22,9 +23,7 @@ const router = require('express').Router(),
     //without an expected ID it will reject the upload. The ID is used as the file name here.
     expectedUploadIds = new Set(),
     storageDir = process.env.STORAGE_PATH || './storage',
-    uuid = require('uuid'),
-    // a really long timeout for requests so they don't get timed out
-    REQUEST_TIMEOUT = 1000 * 60 * 60 * 10;
+    uuid = require('uuid');
 
 socket.on('connect', () => {
     console.log(`Connected to Overseer at ${new Date().toLocaleString()}`);
@@ -72,9 +71,10 @@ async function refreshOverseer() {
     });
 }
 
-router.post('/upload/:id', function(req, res) {
-    req.socket.setTimeout(REQUEST_TIMEOUT)
+//don't let the request time out for a very long time, big uploads take a while!
+router.use(timeout('10h'))
 
+router.post('/upload/:id', function(req, res) {
     const busboy = Busboy({headers: req.headers}),
         id = req.params.id;
 
@@ -113,7 +113,6 @@ router.post('/upload/:id', function(req, res) {
 });
 
 router.get('/download/:id', function(req, res) {
-    req.socket.setTimeout(REQUEST_TIMEOUT)
     const id = req.params.id,
         token = req.query.token;
 
