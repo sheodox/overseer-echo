@@ -13,6 +13,9 @@ app.use(cors({
 
 app.use('/', routes);
 
-app.listen(3000, function() {
+const server = app.listen(3000, function() {
     console.log('listening on port 3000');
 });
+
+//set a huge timeout otherwise file uploads can stop partway through
+server.timeout = 1000 * 60 * 60 * 10;
