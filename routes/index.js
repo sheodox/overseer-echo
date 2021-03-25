@@ -10,7 +10,6 @@ const router = require('express').Router(),
     exec = require('child_process').exec,
     fs = require('fs'),
     path = require('path'),
-    timeout = require('connect-timeout'),
     Busboy = require('busboy'),
     socket = require('socket.io-client')(`${process.env.OVERSEER_HOST}/echo-server`, {
         auth: {
@@ -70,9 +69,6 @@ async function refreshOverseer() {
         diskUsage: await getUsedDisk()
     });
 }
-
-//don't let the request time out for a very long time, big uploads take a while!
-router.use(timeout('10h'))
 
 router.post('/upload/:id', function(req, res) {
     const busboy = Busboy({headers: req.headers}),
