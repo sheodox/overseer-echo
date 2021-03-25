@@ -22,7 +22,9 @@ const router = require('express').Router(),
     //without an expected ID it will reject the upload. The ID is used as the file name here.
     expectedUploadIds = new Set(),
     storageDir = process.env.STORAGE_PATH || './storage',
-    uuid = require('uuid');
+    uuid = require('uuid'),
+    // a really long timeout for requests so they don't get timed out
+    REQUEST_TIMEOUT = 1000 * 60 * 60 * 10;
 
 socket.on('connect', () => {
     console.log(`Connected to Overseer at ${new Date().toLocaleString()}`);
@@ -71,6 +73,8 @@ async function refreshOverseer() {
 }
 
 router.post('/upload/:id', function(req, res) {
+    req.setTimeout(REQUEST_TIMEOUT);
+
     const busboy = Busboy({headers: req.headers}),
         id = req.params.id;
 
@@ -109,6 +113,7 @@ router.post('/upload/:id', function(req, res) {
 });
 
 router.get('/download/:id', function(req, res) {
+    req.setTimeout(REQUEST_TIMEOUT);
     const id = req.params.id,
         token = req.query.token;
 
