@@ -73,8 +73,7 @@ async function refreshOverseer() {
 }
 
 router.post('/upload/:id', function(req, res) {
-    req.setTimeout(REQUEST_TIMEOUT);
-    res.setTimeout(REQUEST_TIMEOUT);
+    req.socket.setTimeout(REQUEST_TIMEOUT)
 
     const busboy = Busboy({headers: req.headers}),
         id = req.params.id;
@@ -114,8 +113,7 @@ router.post('/upload/:id', function(req, res) {
 });
 
 router.get('/download/:id', function(req, res) {
-    req.setTimeout(REQUEST_TIMEOUT);
-    res.setTimeout(REQUEST_TIMEOUT);
+    req.socket.setTimeout(REQUEST_TIMEOUT)
     const id = req.params.id,
         token = req.query.token;
 
