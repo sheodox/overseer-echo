@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "export NODE_ENV=production && forever start app.js",
-    "stop": "forever stop app.js",
+    "start": "NODE_ENV=production pm2 start app.js",
+    "stop": "pm2 stop app.js",
     "deploy": "npm stop && git pull && npm start",
     "dev": "nodemon app"
   },
