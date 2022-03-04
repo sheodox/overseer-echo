@@ -14,7 +14,9 @@ const router = require('express').Router(),
     socket = require('socket.io-client')(`${process.env.OVERSEER_HOST}/echo-server`, {
         auth: {
             token: process.env.OVERSEER_TOKEN
-        }
+        },
+		// allow the socket to connect to overseer running with self-signed certificates in dev
+		rejectUnauthorized: process.env.NODE_ENV === 'production'
     }),
     //Keep track of all of the IDs we have stored, so we can 404 without having to stat the file
     storedItemIds = new Set(),
