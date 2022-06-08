@@ -215,6 +215,7 @@ func (o *overseerConnection) connectSocket() {
 			select {
 			case <-done:
 			case <-time.After(time.Second):
+				os.Exit(0)
 			}
 			return
 		}
