@@ -22,6 +22,6 @@ func main() {
 	e.POST("/upload/:id", routes.Upload)
 	e.GET("/download/:id", routes.Download)
 
-	e.Logger.Fatal(e.Start(":3007"))
+	e.Logger.Fatal(e.Start(":" + cfg.Port))
 
 }

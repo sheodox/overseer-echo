@@ -12,6 +12,7 @@ type AppConfig struct {
 	StoragePath   string
 	OverseerHost  string
 	OverseerToken string
+	Port          string
 }
 
 func getEnv(name string) string {
@@ -43,6 +44,7 @@ func GetConfig() AppConfig {
 		StoragePath:   getEnv("STORAGE_PATH"),
 		OverseerHost:  getEnv("OVERSEER_HOST"),
 		OverseerToken: getEnv("OVERSEER_TOKEN"),
+		Port:          getEnv("ECHO_SERVER_PORT"),
 	}
 	cfgGenerated = true
 
