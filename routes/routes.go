@@ -33,26 +33,33 @@ func Upload(c echo.Context) error {
 	req := c.Request()
 	err := req.ParseMultipartForm(100 << 20)
 
-	src, _, err := req.FormFile("echo-item")
 	if err != nil {
 		c.Logger().Error("Error retrieving file from form", err)
-		return c.String(http.StatusBadRequest, "Bad request")
-	}
-	defer src.Close()
-
-	dst, err := os.Create(path.Join(config.GetConfig().StoragePath, id+".zip"))
-	if err != nil {
-		c.Logger().Error("Error creating destination file", err)
-		return c.String(http.StatusBadRequest, "Bad request")
-	}
-	defer dst.Close()
-
-	if _, err = io.Copy(dst, src); err != nil {
-		c.Logger().Error("Error saving upload", err)
-		return c.String(http.StatusInternalServerError, "Error saving upload")
+		return c.String(http.StatusBadRequest, "Bad Request")
 	}
 
-	management.Uploaded(id)
+	go func() {
+		src, _, err := req.FormFile("echo-item")
+		if err != nil {
+			c.Logger().Error("Error retrieving file from form", err)
+			return
+		}
+		defer src.Close()
+
+		dst, err := os.Create(path.Join(config.GetConfig().StoragePath, id+".zip"))
+		if err != nil {
+			c.Logger().Error("Error creating destination file", err)
+			return
+		}
+		defer dst.Close()
+
+		if _, err = io.Copy(dst, src); err != nil {
+			c.Logger().Error("Error saving upload", err)
+			return
+		}
+
+		management.Uploaded(id)
+	}()
 
 	return c.String(http.StatusOK, "")
 }
