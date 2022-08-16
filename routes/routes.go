@@ -19,6 +19,10 @@ func init() {
 }
 
 func Upload(c echo.Context) error {
+	badRequest := func() error {
+		return c.String(http.StatusBadRequest, "Bad Request")
+	}
+
 	id := c.Param("id")
 	if id == "" {
 		return c.String(http.StatusBadRequest, "Missing upload ID")
@@ -31,35 +35,21 @@ func Upload(c echo.Context) error {
 	}
 
 	req := c.Request()
-	err := req.ParseMultipartForm(100 << 20)
 
+	dst, err := os.Create(path.Join(config.GetConfig().StoragePath, id+".zip"))
 	if err != nil {
-		c.Logger().Error("Error retrieving file from form", err)
-		return c.String(http.StatusBadRequest, "Bad Request")
+		c.Logger().Error("Error creating destination file", err)
+		return badRequest()
 	}
+	defer dst.Close()
 
-	go func() {
-		src, _, err := req.FormFile("echo-item")
-		if err != nil {
-			c.Logger().Error("Error retrieving file from form", err)
-			return
-		}
-		defer src.Close()
+	if _, err = io.Copy(dst, req.Body); err != nil {
+		c.Logger().Error("Error saving upload", err)
+		return badRequest()
+	}
+	req.Body.Close()
 
-		dst, err := os.Create(path.Join(config.GetConfig().StoragePath, id+".zip"))
-		if err != nil {
-			c.Logger().Error("Error creating destination file", err)
-			return
-		}
-		defer dst.Close()
-
-		if _, err = io.Copy(dst, src); err != nil {
-			c.Logger().Error("Error saving upload", err)
-			return
-		}
-
-		management.Uploaded(id)
-	}()
+	management.Uploaded(id)
 
 	return c.String(http.StatusOK, "")
 }
