@@ -12,6 +12,12 @@ import (
 	"github.com/sheodox/overseer-echo/management"
 )
 
+func init() {
+	tempDir := config.GetConfig().TempStoragePath
+	os.Setenv("TMPDIR", tempDir)
+	os.MkdirAll(tempDir, 0755)
+}
+
 func Upload(c echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
@@ -24,15 +30,12 @@ func Upload(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, fmt.Sprintf("Upload with ID %q isn't expected!", id))
 	}
 
-	file, err := c.FormFile("echo-item")
+	req := c.Request()
+	err := req.ParseMultipartForm(100 << 20)
+
+	src, _, err := req.FormFile("echo-item")
 	if err != nil {
 		c.Logger().Error("Error retrieving file from form", err)
-		return c.String(http.StatusBadRequest, "Bad request")
-	}
-
-	src, err := file.Open()
-	if err != nil {
-		c.Logger().Error("Error opening file from form", err)
 		return c.String(http.StatusBadRequest, "Bad request")
 	}
 	defer src.Close()
